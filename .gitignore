@@ -1,5 +1,5 @@
 /.idea
 *.pyc
-/src/models
-/src/crawl
-/src/data
+/web/src/models
+/web/src/crawl
+/web/src/data
