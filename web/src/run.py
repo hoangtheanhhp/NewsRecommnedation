@@ -3,7 +3,7 @@ import utils
 from models import LDAModel
 from preprocessing import PreProcessing
 
-PATH_DATA_SET = '/home/anh/Project/ML/LDA_Recommender_System/src/crawl/result/2019-04-09/'
+PATH_DATA_SET = '/home/anh/Project/ML/LDA_Recommender_System/web/src/crawl/result/2019-04-09/'
 
 
 def main():
@@ -14,9 +14,9 @@ def main():
     # for sentence in sentences:
     #     print sentence
     lda = LDAModel()
-    # lda.fit(sentences)
-    # model_list, coherence_values = lda.coherence_model_lda(dictionary=lda.id2word, corpus=lda.corpus, texts=data_lemmatized, start=2, limit=40, step=6)
-    for i in range(0,64):
-        print lda.models.print_topic(i)
+    # lda.fit(sentences, num_topics=10)
+    a = lda.doc_topic_dist
+    for i in range(0,10):
+        print "Topic #%d: " %(i+1) + lda.models.print_topic(i, 10)
 if __name__ == '__main__':
     main()

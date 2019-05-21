@@ -2,27 +2,16 @@ import os
 import logging
 import random
 
-from flask import Flask, jsonify, render_template
-import numpy as np
-import pymongo
-
+from flask import Flask
+from flask import render_template
+from flask_pymongo import PyMongo
 import settings
 from src.distances import get_most_similar_documents
 from src.models import make_texts_corpus
 
-client = pymongo.MongoClient(settings.MONGODB_SETTINGS["host"])
-db = client[settings.MONGODB_SETTINGS["db"]]
-mongo_col = db[settings.MONGODB_SETTINGS["collection"]]
-
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "framgia123")
-
-# app.config.from_object('web.config.DevelopmentConfig')
-logging.basicConfig(
-    format='%(asctime)s : %(levelname)s : %(message)s',
-    level=logging.INFO
-)
-
+app.config["MONGO_URI"] = "mongodb://localhost:27017/myDatabase"
+mongo = PyMongo(app)
 
 def load_model():
     import gensim  # noqa
@@ -51,28 +40,11 @@ def load_model():
 lda_model, corpus, id2word, doc_topic_dist = load_model()
 
 
-@app.route('/ping', methods=['GET'])
-def ping_pong():
-    return jsonify({
-        'call': 'success',
-        'message': 'pong!'
-    })
-
-
-@app.route('/posts/', methods=["GET"])
+@app.route("/posts/", methods=["GET"])
 def show_posts():
-    idrss = random.sample(range(0, mongo_col.count()), 10)
-    posts = mongo_col.find({"idrs": {"$in": idrss}})
-    random_posts = [
-        {
-            "url": post["canonical_url"],
-            "title": post["title"],
-            "slug": post["slug"]
-        }
-        for post in posts
-    ]
-    return render_template('index.html', random_posts=random_posts)
-
+    user = mongo.db.users.find_one_or_404({"_id": username})
+    return render_template("user.html",
+        user=user)
 
 @app.route('/posts/<slug>', methods=["GET"])
 def show_post(slug):
@@ -110,41 +82,6 @@ def show_post(slug):
     return render_template(
         'index.html', main_post=main_post, posts=related_posts
     )
-
-
-@app.route('/posts_HAU/<slug>', methods=["GET"])
-def show_post_HAU(slug):
-    """
-    Author: Thanh Hau
-    """
-    from sklearn.externals import joblib  # noqa
-    sim_topics = joblib.load('data/similarity_dict_HAU.pkl')
-    main_post = mongo_col.find_one({"slug": slug})
-    main_post = [
-        {
-            "url": main_post["canonical_url"],
-            "title": main_post["title"],
-            "slug": main_post["slug"],
-            "content": main_post["contents"]
-        }
-    ]
-    main_post = main_post[0]
-
-    most_sim_slugs = sim_topics[slug]
-    posts = mongo_col.find({"slug": {"$in": most_sim_slugs}})
-    related_posts = [
-        {
-            "url": post["canonical_url"],
-            "title": post["title"],
-            "slug": post["slug"]
-        }
-        for post in posts
-    ]
-
-    return render_template(
-        'index.html', main_post=main_post, posts=related_posts
-    )
-
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', debug=True)
